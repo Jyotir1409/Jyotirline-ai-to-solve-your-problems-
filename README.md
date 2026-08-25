@@ -1,2 +1,2 @@
- Jyotirline ai-to solve your problems- you could use the ai the folder to acsess the ai
+# Jyotirline-Ai-for-helping in different things
  
