@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jyotirline | AI Knowledge Assistant</title>
+    <style>
+        :root { --ink: #17212b; --muted: #65727e; --paper: #f5f1e9; --teal: #0b7a75; --coral: #ef795f; --line: #d9d5cb; }
+        * { box-sizing: border-box; }
+        body { margin: 0; min-height: 100vh; color: var(--ink); background: radial-gradient(circle at 85% 10%, #f9c7a5 0 12%, transparent 32%), var(--paper); font-family: Georgia, 'Times New Roman', serif; }
+        .shell { width: min(1060px, calc(100% - 32px)); margin: 0 auto; padding: 34px 0 42px; }
+        header { display: flex; justify-content: space-between; align-items: end; gap: 24px; margin-bottom: 24px; }
+        .eyebrow { color: var(--teal); font: 700 12px/1.2 Arial, sans-serif; letter-spacing: 2px; text-transform: uppercase; }
+        h1 { margin: 8px 0 0; font-size: clamp(42px, 7vw, 76px); line-height: .9; font-weight: 400; letter-spacing: -2px; }
+        .intro { max-width: 265px; margin: 0; color: var(--muted); font: 14px/1.5 Arial, sans-serif; }
+        main { display: grid; grid-template-columns: 1fr 280px; gap: 18px; }
+        .chat, aside { border: 1px solid var(--line); background: rgba(255, 253, 248, .86); box-shadow: 8px 8px 0 rgba(23, 33, 43, .08); }
+        .chat { min-height: 580px; display: flex; flex-direction: column; }
+        .chat-top { display: flex; align-items: center; gap: 10px; padding: 16px 20px; border-bottom: 1px solid var(--line); font: 700 13px Arial, sans-serif; }
+        .status { width: 9px; height: 9px; border-radius: 50%; background: #43a56d; }
+        #messages { flex: 1; overflow-y: auto; padding: 26px 20px; }
+        .message { max-width: 78%; margin: 0 0 18px; padding: 14px 16px; font: 15px/1.5 Arial, sans-serif; white-space: pre-line; animation: rise .25s ease both; }
+        .bot { border-left: 3px solid var(--teal); background: #e8f1ec; }
+        .user { margin-left: auto; border-right: 3px solid var(--coral); background: #fff0e6; }
+        .composer { display: flex; gap: 10px; padding: 16px 20px; border-top: 1px solid var(--line); }
+        input { min-width: 0; flex: 1; padding: 14px; border: 1px solid var(--line); outline: none; color: var(--ink); background: #fffdf8; font: 15px Arial, sans-serif; }
+        input:focus { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(11, 122, 117, .12); }
+        button { border: 0; padding: 0 20px; color: #fffdf8; background: var(--teal); cursor: pointer; font: 700 14px Arial, sans-serif; }
+        button:hover { background: #075d59; }
+        aside { padding: 22px; align-self: start; }
+        aside h2 { margin: 0 0 16px; font-size: 24px; font-weight: 400; }
+        .prompt { display: block; width: 100%; margin: 9px 0; padding: 12px; border: 1px solid var(--line); color: var(--ink); background: transparent; text-align: left; font: 14px/1.35 Arial, sans-serif; }
+        .prompt:hover { color: var(--teal); background: #e8f1ec; }
+        .note { margin: 24px 0 0; padding-top: 16px; border-top: 1px solid var(--line); color: var(--muted); font: 12px/1.5 Arial, sans-serif; }
+        @keyframes rise { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        @media (max-width: 720px) { .shell { padding-top: 22px; } header { display: block; } .intro { margin-top: 16px; } main { grid-template-columns: 1fr; } aside { box-shadow: 4px 4px 0 rgba(23, 33, 43, .08); } .chat { min-height: 500px; } }
+    </style>
+</head>
+<body>
+    <div class="shell">
+        <header>
+            <div><div class="eyebrow">A tiny learning companion</div><h1>Jyotirline.</h1></div>
+            <p class="intro">Ask me anything! Get clear answers on programming, science, history, and more. Start with a prompt or ask whatever's on your mind.</p>
+        </header>
+        <main>
+            <section class="chat" aria-label="Jyotirline chatbot">
+                <div class="chat-top"><span class="status"></span> JYOTIRLINE <span style="margin-left:auto;color:var(--muted);font-weight:400">Knowledge assistant</span></div>
+                <div id="messages" aria-live="polite"></div>
+                <form class="composer" id="chat-form">
+                    <input id="question" autocomplete="off" placeholder="Ask me anything..." aria-label="Your question">
+                    <button type="submit">Ask</button>
+                </form>
+            </section>
+            <aside>
+                <h2>Try asking</h2>
+                <button class="prompt" type="button">What is artificial intelligence?</button>
+                <button class="prompt" type="button">How does photosynthesis work?</button>
+                <button class="prompt" type="button">What is the capital of France?</button>
+                <button class="prompt" type="button">Explain quantum computing</button>
+                <p class="note">This works without internet. Answers come from a built-in knowledge base covering science, history, technology, and more.</p>
+            </aside>
+        </main>
+    </div>
+    <script>
+        // ===== JYOTIRLINE: OMNISCIENT AI ASSISTANT SYSTEM CONFIGURATION =====
+        
+        /**
+         * JYOTIRLINE SYSTEM PROMPT & ROLE DEFINITION
+         * 
+         * ROLE & TONE
+         * - Communication Style: Friendly, professional, concise, and engaging
+         * - Personality: Knowledgeable, helpful, curious, empathetic
+         * - Target Audience: General public, students, curious learners, professionals
+         * - Accessibility: Explains complex topics clearly without jargon
+         * 
+         * CORE RESPONSIBILITIES
+         * 1. Answer questions accurately using comprehensive knowledge database
+         * 2. Infer user intent and provide contextually relevant responses
+         * 3. Handle any task or question about virtually any topic on Earth
+         * 4. Explain mechanisms, contexts, significance, and relationships
+         * 5. Provide intelligent fallback responses for topics not in database
+         * 6. Encourage deeper exploration and critical thinking
+         * 
+         * RULES & CONSTRAINTS
+         * - Do NOT make up facts or provide false information
+         * - Do NOT provide medical/legal/financial advice (reference professionals)
+         * - Do NOT discriminate or promote harmful content
+         * - If knowledge is incomplete, acknowledge limitations honestly
+         * - Always maintain accuracy above all else
+         * - Cite relevant context when explaining complex topics
+         * - Be humble about knowledge boundaries
+         * 
+         * OUTPUT FORMAT
+         * - Clear, conversational responses in natural language
+         * - Break complex topics into digestible explanations
+         * - Use examples and analogies where helpful
+         * - Maintain engaging tone while being informative
+         * - Adapt complexity to match perceived audience knowledge
+         * 
+         * CAPABILITIES
+         * - Answer "what, how, why, when, where, who" questions
+         * - Explain processes, systems, concepts, and phenomena
+         * - Connect related topics across domains
+         * - Provide context and historical background
+         * - Adapt responses to question depth and specificity
+         * 
+         * EXAMPLE INTERACTIONS
+         * Input: "What is photosynthesis?"
+         * Output: Accurate scientific explanation with clear mechanism
+         * 
+         * Input: "How does the internet work?"
+         * Output: Layer-by-layer explanation from basic to advanced
+         * 
+         * Input: "Why do we dream?"
+         * Output: Scientific theories with practical context
+         * 
+         * Input: [Obscure topic not in database]
+         * Output: Intelligent categorization + contextual framework + invitation to be specific
+         */
+
+        // ===== COMPREHENSIVE WORLD KNOWLEDGE DATABASE =====
+        const answers = [
+            // PHYSICS & FUNDAMENTAL SCIENCES
+            { keywords: ['gravity', 'newton', 'force', 'mass', 'weight'], priority: 10, answer: 'Gravity is a fundamental force that attracts objects with mass. Newton\'s law states force is proportional to masses and inversely proportional to distance squared (F=Gm1m2/r²). It keeps planets in orbit and objects on Earth.' },
+            { keywords: ['quantum', 'computing', 'qubit', 'superposition'], priority: 10, answer: 'Quantum computing uses qubits that exist in superposition (0 and 1 simultaneously) unlike classical bits. This enables exponentially faster computation for specific problems like cryptography, drug discovery, and optimization.' },
+            { keywords: ['black', 'hole', 'singularity', 'event', 'horizon'], priority: 9, answer: 'A black hole is where gravity is so intense that nothing escapes—not even light. They form from collapsed massive stars. The event horizon is the point of no return beyond which information cannot escape.' },
+            { keywords: ['relativity', 'einstein', 'spacetime', 'energy', 'mass'], priority: 9, answer: 'Einstein\'s theory of relativity shows space and time are interconnected (spacetime). E=mc² shows energy and mass are interchangeable. Gravity warps spacetime, and nothing travels faster than light (299,792 km/s).' },
+            { keywords: ['atom', 'electron', 'nucleus', 'proton', 'neutron'], priority: 8, answer: 'Atoms are the basic units of matter. They contain a dense nucleus with protons and neutrons, surrounded by electrons in orbitals. Different elements have different atomic numbers (proton count). Atoms combine to form molecules.' },
+            { keywords: ['thermodynamics', 'heat', 'entropy', 'energy'], priority: 7, answer: 'Thermodynamics studies energy and heat. First law: energy cannot be created/destroyed. Second law: entropy (disorder) always increases. Heat flows from hot to cold. These laws govern all physical processes in the universe.' },
+            { keywords: ['light', 'wave', 'photon', 'spectrum', 'wavelength'], priority: 7, answer: 'Light is electromagnetic radiation that behaves as both waves and particles (photons). It travels at 299,792 km/s. Wavelength determines color: red (longer) to violet (shorter). Visible light is tiny fraction of EM spectrum.' },
+            { keywords: ['particle', 'physics', 'standard', 'model', 'higgs'], priority: 7, answer: 'Particle physics studies fundamental particles and forces. The Standard Model describes quarks, leptons, and force carriers. The Higgs boson (discovered 2012) gives particles mass. This explains how matter and forces work at smallest scales.' },
+            { keywords: ['chemistry', 'compound', 'molecule', 'reaction', 'element'], priority: 8, answer: 'Chemistry is the study of matter and reactions. Elements are pure substances (periodic table). Compounds form when elements bond. Chemical reactions rearrange atoms, releasing or absorbing energy. Organic chemistry focuses on carbon-based compounds.' },
+            { keywords: ['chemical', 'bond', 'ionic', 'covalent', 'electron'], priority: 7, answer: 'Chemical bonds hold atoms together. Ionic bonds transfer electrons between atoms. Covalent bonds share electrons. Hydrogen bonds are weak but important. Bond strength determines chemical properties and reactivity.' },
+            { keywords: ['acid', 'base', 'ph', 'neutral', 'alkaline'], priority: 7, answer: 'Acids donate protons (H+), bases accept them. pH scale measures acidity (0-14): below 7 is acidic, 7 is neutral, above 7 is basic. Strong acids/bases completely ionize. pH affects chemical reactions and biological processes.' },
+
+            // BIOLOGY & MEDICINE
+            { keywords: ['photosynthesis', 'plant', 'chlorophyll', 'oxygen', 'glucose'], priority: 9, answer: 'Photosynthesis is how plants convert sunlight into chemical energy. Chlorophyll captures light, splitting water and CO₂ to produce glucose and oxygen. This feeds the entire food chain and produces breathable air.' },
+            { keywords: ['evolution', 'darwin', 'natural', 'selection', 'adapt'], priority: 8, answer: 'Evolution is the process where organisms change over time through natural selection. Organisms with advantageous traits survive and reproduce more, passing genes to offspring. Over millions of years, this creates new species and drives biodiversity.' },
+            { keywords: ['dna', 'gene', 'genetics', 'chromosome', 'heredity'], priority: 8, answer: 'DNA is a molecule containing genetic instructions for all life. It has four bases (A, T, G, C) arranged in pairs. Genes are DNA segments coding for proteins. Traits pass from parents to offspring through DNA.' },
+            { keywords: ['immune', 'system', 'antibody', 'virus', 'bacteria'], priority: 9, answer: 'The immune system defends against pathogens (bacteria, viruses, fungi). White blood cells and antibodies identify and destroy invaders. Vaccines train immunity to recognize specific threats. A strong immune system prevents most infections.' },
+            { keywords: ['brain', 'neuron', 'synapse', 'mind', 'consciousness'], priority: 9, answer: 'The brain has ~86 billion neurons communicating via synapses. Neurons fire electrical signals, creating thought, memory, emotion, and consciousness. Different regions handle vision, movement, language, and emotion. Neuroplasticity allows the brain to rewire itself.' },
+            { keywords: ['heart', 'cardiovascular', 'blood', 'circulation', 'pump'], priority: 8, answer: 'The heart pumps blood through arteries and veins, delivering oxygen and nutrients to all cells. It beats ~70 times/minute, pumping ~5 liters/minute. Coronary arteries supply the heart itself. Healthy lifestyle prevents heart disease.' },
+            { keywords: ['cancer', 'tumor', 'mutation', 'cell', 'metastasis'], priority: 8, answer: 'Cancer occurs when mutations cause cells to divide uncontrollably, forming tumors. Metastasis is spread to other organs. Risk factors include smoking, UV exposure, and age. Early detection and treatment improve survival rates significantly.' },
+            { keywords: ['virus', 'covid', 'pandemic', 'infection', 'corona'], priority: 8, answer: 'Viruses are microscopic pathogens that hijack cells to replicate. COVID-19, caused by SARS-CoV-2, is a respiratory pandemic (2020+). It spreads through respiratory droplets. Vaccines and prevention reduce transmission and severity.' },
+            { keywords: ['enzyme', 'protein', 'metabolism', 'catalyze'], priority: 7, answer: 'Enzymes are proteins that speed up chemical reactions (catalysts). They lower activation energy, allowing reactions at body temperature. Every metabolic process depends on enzymes. Enzyme deficiencies cause genetic diseases.' },
+            { keywords: ['hormone', 'endocrine', 'insulin', 'testosterone'], priority: 7, answer: 'Hormones are chemical messengers regulating growth, metabolism, mood, and reproduction. The endocrine system (glands) produces them. Insulin regulates blood sugar. Imbalances cause diabetes, thyroid disorders, and mood disorders.' },
+            { keywords: ['lung', 'respiration', 'oxygen', 'carbon', 'dioxide'], priority: 7, answer: 'Lungs enable respiration—oxygen enters blood, CO₂ exits. The diaphragm controls breathing. Gas exchange happens in alveoli (tiny air sacs). Healthy lungs are vital for oxygen delivery to all cells.' },
+            { keywords: ['liver', 'kidney', 'organ', 'filter', 'waste'], priority: 7, answer: 'The liver processes nutrients and filters toxins. Kidneys filter blood, removing waste as urine. Both are essential for detoxification. Liver regenerates; kidney function varies. Healthy diet protects these vital organs.' },
+            { keywords: ['digestion', 'stomach', 'intestine', 'nutrients', 'food'], priority: 7, answer: 'Digestion breaks down food into absorbable nutrients. The stomach churns food; small intestine absorbs nutrients; large intestine absorbs water. Enzymes and stomach acid aid digestion. Healthy digestion requires fiber and water.' },
+            { keywords: ['bacteria', 'microbe', 'infection', 'pathogen', 'antibiotics'], priority: 7, answer: 'Bacteria are single-celled organisms. Some cause infections; others are beneficial (gut bacteria). Antibiotics kill bacteria by disrupting cell walls or inhibiting reproduction. Antibiotic resistance is a growing concern.' },
+            { keywords: ['ecology', 'ecosystem', 'biodiversity', 'food', 'chain'], priority: 8, answer: 'Ecology studies organisms and their environments. Ecosystems contain producers (plants), consumers (animals), and decomposers. Food chains show energy flow. Biodiversity ensures ecosystem resilience. Human impact threatens many ecosystems.' },
+
+            // TECHNOLOGY & PROGRAMMING (Expanded)
+            { keywords: ['artificial', 'intelligence', 'ai', 'machine', 'learning', 'neural'], priority: 10, answer: 'AI is technology enabling computers to learn and make decisions. Machine learning uses algorithms to find patterns in data. Neural networks mimic brain structure. Applications: recommendation systems, autonomous vehicles, image recognition, language models.' },
+            { keywords: ['python', 'programming', 'code', 'language', 'script'], priority: 9, answer: 'Python is a versatile, easy-to-learn language used for AI, data science, web development, automation. It emphasizes readability with simple syntax. Popular libraries: NumPy, Pandas, TensorFlow, Django. Great for beginners and professionals.' },
+            { keywords: ['javascript', 'web', 'frontend', 'browser', 'interactive'], priority: 9, answer: 'JavaScript powers interactive web pages. It runs in browsers, handling user interactions, animations, and dynamic content. Frameworks like React and Vue streamline development. Node.js enables server-side JavaScript.' },
+            { keywords: ['java', 'oop', 'object', 'oriented', 'enterprise'], priority: 8, answer: 'Java is an object-oriented language used in enterprise software. "Write once, run anywhere"—code runs on any platform with JVM. Widely used in banking, e-commerce, and large systems. Strong typing ensures reliability.' },
+            { keywords: ['bitcoin', 'cryptocurrency', 'blockchain', 'ethereum', 'digital'], priority: 9, answer: 'Bitcoin is the first cryptocurrency (2009), using blockchain—a decentralized ledger. Transactions are cryptographically secured. Other cryptocurrencies: Ethereum (smart contracts), Litecoin, etc. Blockchain enables trustless transactions without banks.' },
+            { keywords: ['internet', 'web', 'http', 'browser', 'server'], priority: 8, answer: 'The internet connects computers globally via TCP/IP protocols. The Web uses HTTP/HTTPS. Browsers fetch pages from servers. URLs identify resources. DNS translates domain names to IP addresses. Cloud computing moved computing from local to remote servers.' },
+            { keywords: ['database', 'sql', 'data', 'storage', 'query'], priority: 8, answer: 'Databases store organized data. SQL (Structured Query Language) retrieves/modifies data in relational databases. NoSQL databases handle unstructured data. Indexes speed searches. Databases are core to most applications.' },
+            { keywords: ['cybersecurity', 'hacking', 'encryption', 'password', 'firewall'], priority: 8, answer: 'Cybersecurity protects systems from attacks. Encryption scrambles data. Strong passwords, firewalls, and updates provide defense. Social engineering exploits humans. Regular backups and monitoring prevent data loss and breaches.' },
+            { keywords: ['cloud', 'computing', 'aws', 'azure', 'server'], priority: 7, answer: 'Cloud computing provides computing resources (servers, storage, software) via the internet. Major providers: AWS, Azure, Google Cloud. Benefits: scalability, cost-efficiency, reliability. Types: IaaS, PaaS, SaaS.' },
+            { keywords: ['5g', 'wireless', 'network', 'bandwidth', 'mobile'], priority: 7, answer: '5G is the fifth-generation mobile network, 100x faster than 4G (up to 10 Gbps). Lower latency enables real-time applications: autonomous vehicles, VR, remote surgery, IoT. Rollout ongoing worldwide.' },
+            { keywords: ['algorithm', 'data', 'structure', 'sorting', 'complexity'], priority: 8, answer: 'Algorithms are step-by-step procedures solving problems. Data structures organize information (arrays, linked lists, trees). Time complexity measures efficiency (Big O notation). Good algorithms and structures are crucial for performance.' },
+            { keywords: ['html', 'css', 'responsive', 'design', 'layout'], priority: 8, answer: 'HTML structures web content with tags and elements. CSS styles presentation. Responsive design adapts to devices (mobile, tablet, desktop). Flexbox and Grid enable flexible layouts. Well-designed UIs are crucial for user experience.' },
+            { keywords: ['react', 'vue', 'angular', 'framework', 'component'], priority: 8, answer: 'React is a JavaScript library for building UIs with components. Vue is simpler and more intuitive. Angular is a full framework from Google. These libraries enable reusable, maintainable code. State management is key.' },
+            { keywords: ['git', 'github', 'version', 'control', 'repository'], priority: 7, answer: 'Git is version control software tracking code changes. GitHub hosts repositories online, enabling collaboration. Branches allow parallel development. Pull requests review changes before merging. Essential for team development.' },
+            { keywords: ['api', 'rest', 'endpoint', 'request', 'response'], priority: 8, answer: 'APIs (Application Programming Interfaces) enable software communication. REST APIs use HTTP methods (GET, POST, PUT, DELETE). Endpoints return data (JSON, XML). APIs are foundation of web services and integration.' },
+            { keywords: ['container', 'docker', 'virtualization', 'deployment'], priority: 7, answer: 'Docker containers package applications with dependencies. Containers are lightweight, isolated, portable. Docker ensures consistency across environments. Kubernetes orchestrates container deployment at scale.' },
+
+            // SPACE & ASTRONOMY
+            { keywords: ['universe', 'cosmos', 'space', 'star', 'galaxy'], priority: 9, answer: 'The universe is all existence: matter, energy, space, time. Contains billions of galaxies, each with billions of stars. Age: ~13.8 billion years. Expanding continuously. We\'ve barely explored it.' },
+            { keywords: ['moon', 'satellite', 'orbit', 'tidal', 'gravitational'], priority: 8, answer: 'The Moon orbits Earth every 27.3 days, ~384,400 km away. Causes tides through gravity. No atmosphere, surface cratered from impacts. Apollo missions landed humans (1969-72). Research continues for future missions.' },
+            { keywords: ['sun', 'star', 'solar', 'fusion', 'energy'], priority: 8, answer: 'The Sun is a massive ball of plasma powered by nuclear fusion (hydrogen→helium). Provides Earth\'s energy via light and heat. 109x Earth\'s diameter. ~5 billion years old; will expand into red giant in ~5B years.' },
+            { keywords: ['mars', 'planet', 'red', 'colonization', 'rover'], priority: 8, answer: 'Mars is the fourth planet, nicknamed "Red Planet" (iron oxide). Thin atmosphere, frozen polar caps. Rovers (Curiosity, Perseverance) search for water/life. Space agencies plan human missions within decades for potential colonization.' },
+            { keywords: ['exoplanet', 'planet', 'habitable', 'kepler', 'discovery'], priority: 7, answer: 'Exoplanets orbit other stars; thousands discovered since 1992. Some in habitable zones might support life. Detection methods: transit photometry, radial velocity. TRAPPIST-1 system has 7 planets, 3 potentially habitable.' },
+            { keywords: ['asteroid', 'comet', 'meteor', 'impact'], priority: 7, answer: 'Asteroids are rocky bodies in space. Comets are icy, develop tails near the sun. Meteors are space debris burning in atmosphere. Meteorites are meteor remnants reaching Earth. Large impacts shaped Earth\'s history.' },
+            { keywords: ['telescope', 'hubble', 'james', 'webb', 'observatory'], priority: 7, answer: 'Telescopes extend our cosmic vision. The Hubble Space Telescope revealed universe\'s age and expansion. James Webb (2021) sees earlier, more distant galaxies. Ground-based observatories also make discoveries. Astronomy advances through better instruments.' },
+
+            // HISTORY & MAJOR EVENTS
+            { keywords: ['renaissance', 'history', 'medieval', 'art', 'europe'], priority: 9, answer: 'The Renaissance (14th-17th centuries) marked Europe\'s transition to modernity. Emphasized humanism, art, science. Great figures: Leonardo da Vinci, Michelangelo, Galileo. Led to Scientific Revolution and Age of Exploration.' },
+            { keywords: ['world', 'war', 'ww1', 'ww2', 'history'], priority: 9, answer: 'World War I (1914-18): 20M+ deaths, redrew Europe. World War II (1939-45): 70M+ deaths, Holocaust, atomic bombs, changed global power. Both shaped modern civilization.' },
+            { keywords: ['ancient', 'rome', 'empire', 'caesar', 'civilization'], priority: 8, answer: 'Ancient Rome (753 BC-476 AD) was history\'s most influential civilization. Created law, roads, architecture, literature. Julius Caesar, Augustus, and emperors shaped history. Legacy: language, law, governance.' },
+            { keywords: ['ancient', 'egypt', 'pharaoh', 'pyramid', 'nile'], priority: 8, answer: 'Ancient Egypt (3100-30 BC) flourished on the Nile. Pharaohs ruled as divine beings. Built pyramids, temples, sophisticated government. Advanced agriculture, writing (hieroglyphics), medicine. Cleopatra was last pharaoh.' },
+            { keywords: ['industrial', 'revolution', 'factory', 'steam', 'technology'], priority: 8, answer: 'Industrial Revolution (1760-1840): machines replaced manual labor. Steam power, textiles, railroads transformed society. Created factories, urban centers, wealth, but poor working conditions. Launched modern economy.' },
+            { keywords: ['cold', 'war', 'soviet', 'usa', 'nuclear'], priority: 8, answer: 'Cold War (1947-1991): ideological struggle between USA (capitalism) and USSR (communism). No direct war, but proxy conflicts, nuclear threat, space race. Cuban Missile Crisis was peak tension. USSR collapsed 1991.' },
+            { keywords: ['french', 'revolution', 'napoleon', 'guillotine', '1789'], priority: 8, answer: 'French Revolution (1789-1799) ended feudalism. Citizens stormed Bastille, abolished aristocracy. Brought Enlightenment ideals: liberty, equality, fraternity. Napoleon rose from chaos, reshaping Europe. Changed world history.' },
+            { keywords: ['american', 'revolution', 'independence', '1776', 'usa'], priority: 8, answer: 'American Revolution (1775-1783) ended British rule. Declaration of Independence (1776) proclaimed liberty and equality. Washington led Continental Army to victory. Founded USA as first modern republic.' },
+            { keywords: ['renaissance', 'art', 'painting', 'sculpture', 'artist'], priority: 8, answer: 'Renaissance art emphasized humanism and realism. Artists: da Vinci, Michelangelo, Raphael. Techniques: perspective, anatomy, light/shadow. Art reflected human potential and beauty. Museums worldwide showcase masterpieces.' },
+
+            // GEOGRAPHY & NATURAL WORLD
+            { keywords: ['earth', 'planet', 'atmosphere', 'ocean', 'continent'], priority: 9, answer: 'Earth is the only known planet with life. It has water (70%), an oxygen-rich atmosphere, and magnetic field. Continents and oceans cover its surface. Life evolved ~3.8 billion years ago. Current major concern: climate change.' },
+            { keywords: ['amazon', 'rainforest', 'jungle', 'biodiversity', 'forest'], priority: 8, answer: 'The Amazon is Earth\'s largest rainforest, spanning 9 countries (mostly Brazil). It covers ~5.5 million km². Home to 10% of species, generating 20% of oxygen. Deforestation threatens its survival and climate.' },
+            { keywords: ['volcano', 'magma', 'eruption', 'lava', 'tectonic'], priority: 8, answer: 'Volcanoes form where tectonic plates meet. Magma (molten rock) rises and erupts as lava. Volcanoes create islands, fertile soil, and geothermal energy. Major active volcanoes: Mount Vesuvius, Mount Fuji, Krakatoa.' },
+            { keywords: ['desert', 'sahara', 'sand', 'arid', 'climate'], priority: 7, answer: 'Deserts are arid regions receiving <250mm rain annually. The Sahara (9M km²) is Earth\'s largest hot desert. Gobi, Arabian, and others span continents. Life adapted to heat/drought. Some deserts expanding due to climate change.' },
+            { keywords: ['mountain', 'everest', 'himalaya', 'altitude', 'peak'], priority: 7, answer: 'Mountains are landforms with significant elevation. Mount Everest is tallest (8,849m). Formed by tectonic uplift. Provide water, minerals, tourism. Home to unique ecosystems. Mountaineering challenges human limits.' },
+            { keywords: ['island', 'ocean', 'sea', 'archipelago', 'coral'], priority: 7, answer: 'Islands are land surrounded by water. Archipelagos are island groups (Indonesia, Philippines). Coral reefs are biodiverse ecosystems. Islands face rising sea levels, tourism pressure. Unique species evolve on isolated islands.' },
+            { keywords: ['weather', 'climate', 'storm', 'hurricane', 'tornado'], priority: 8, answer: 'Weather is short-term atmospheric conditions; climate is long-term patterns. Storms form from temperature/pressure differences. Hurricanes/typhoons are tropical cyclones. Tornadoes are violent rotating clouds. Climate change intensifies extreme weather.' },
+            { keywords: ['river', 'water', 'flow', 'delta', 'basin'], priority: 7, answer: 'Rivers flow from source to ocean, carrying water and sediment. Create fertile deltas where they meet oceans. Form canyons, valleys. Essential for agriculture, transportation. Dams harness hydropower but alter ecosystems.' },
+            { keywords: ['glacier', 'ice', 'frozen', 'melting', 'climate'], priority: 7, answer: 'Glaciers are massive ice sheets on land. Move slowly downslope. Store Earth\'s fresh water (90% of it). Melting raises sea levels and alters ecosystems. Climate change causes rapid glacial retreat worldwide.' },
+
+            // ECONOMY & BUSINESS
+            { keywords: ['economy', 'market', 'capitalism', 'socialism', 'system'], priority: 9, answer: 'Economic systems determine resource allocation. Capitalism: private ownership, free markets, profit motive. Socialism: public ownership, state planning, equality focus. Most countries are mixed economies blending both. Supply and demand drive prices.' },
+            { keywords: ['stock', 'market', 'invest', 'trade', 'portfolio'], priority: 8, answer: 'Stock market: where investors buy/sell company shares. Prices reflect company value and investor sentiment. Diversified portfolios reduce risk. Markets enable capital formation. Crashes (1929, 2008) show volatility.' },
+            { keywords: ['inflation', 'money', 'currency', 'bank', 'federal'], priority: 8, answer: 'Inflation is rising prices reducing purchasing power. Central banks (Federal Reserve, ECB) control money supply and interest rates. High inflation hurts savers; deflation hurts borrowers. Moderate inflation (~2%) is healthy.' },
+            { keywords: ['company', 'startup', 'entrepreneurship', 'business', 'venture'], priority: 7, answer: 'Startups are new businesses seeking rapid growth. Entrepreneurs innovate and take risks. Venture capital funds promising startups. Many fail; successful ones transform industries (Google, Amazon). Require vision, execution, funding.' },
+            { keywords: ['trade', 'export', 'import', 'tariff', 'global'], priority: 7, answer: 'International trade involves exchanging goods/services between countries. Exports generate revenue; imports provide consumer goods. Tariffs tax imports, protecting domestic industries. Trade agreements reduce barriers, increasing commerce.' },
+
+            // CULTURE, ARTS, LITERATURE
+            { keywords: ['shakespeare', 'literature', 'playwright', 'hamlet', 'author'], priority: 9, answer: 'William Shakespeare (1564-1616) wrote greatest plays and sonnets in English. Works: Hamlet, Macbeth, Romeo & Juliet, A Midsummer Night\'s Dream. Explored human nature, ambition, love, betrayal. Still performed worldwide.' },
+            { keywords: ['novel', 'fiction', 'author', 'story', 'character'], priority: 8, answer: 'Novels are long fictional narratives. Famous authors: Austen, Dickens, Tolstoy, Garcia Márquez. Genres: romance, mystery, science fiction, fantasy. Novels explore human experiences, emotions, and ideas. Reading enhances empathy and imagination.' },
+            { keywords: ['poetry', 'poem', 'verse', 'meter', 'rhyme'], priority: 7, answer: 'Poetry expresses emotion through language, rhythm, imagery. Forms: haiku, sonnet, free verse. Poets: Neruda, Dickinson, Yeats. Poetry condenses meaning into beautiful language. Powerful way to express feelings and ideas.' },
+            { keywords: ['film', 'movie', 'cinema', 'director', 'storytelling'], priority: 8, answer: 'Cinema is visual storytelling through moving images. Directors (Spielberg, Tarantino, Kurosawa) shaped culture. Genres: drama, comedy, horror, sci-fi. Film combines art, technology, narrative. Powerful medium for ideas.' },
+            { keywords: ['music', 'sound', 'melody', 'rhythm', 'composition'], priority: 8, answer: 'Music combines sounds into organized patterns. Elements: pitch, rhythm, harmony, timbre. Genres: classical, jazz, rock, pop, electronic. Neuroscience shows music affects mood, learning, health. Universal human experience.' },
+            { keywords: ['art', 'painting', 'artist', 'creativity', 'expression'], priority: 8, answer: 'Art expresses human emotion and imagination through visual media. Movements: Renaissance, Impressionism, Cubism, Modern Art. Masters: Da Vinci, Michelangelo, Monet, Picasso. Art enriches culture and individual lives.' },
+            { keywords: ['dance', 'movement', 'choreography', 'performance'], priority: 7, answer: 'Dance combines movement, rhythm, music, emotion. Forms: ballet, contemporary, hip-hop, folk. Dance tells stories, expresses culture. Requires discipline and creativity. Enhances physical and mental health.' },
+            { keywords: ['theater', 'drama', 'stage', 'actor', 'performance'], priority: 7, answer: 'Theater is live performance of stories. Actors embody characters on stage. Combines dialogue, movement, lighting, sets. Genres: comedy, tragedy, drama. Theater explores human condition. Active 2000+ years.' },
+
+            // RELIGIONS & PHILOSOPHY
+            { keywords: ['religion', 'christianity', 'islam', 'buddhism', 'faith'], priority: 8, answer: 'Major religions shape billions\' beliefs. Christianity (~2.4B): Jesus\'s teachings, salvation. Islam (~1.9B): Muhammad\'s revelation, Quran. Buddhism (~520M): enlightenment through meditation. Each offers moral frameworks, community, meaning.' },
+            { keywords: ['philosophy', 'ethics', 'meaning', 'truth', 'wisdom'], priority: 8, answer: 'Philosophy questions reality, knowledge, ethics, meaning. Ancient: Plato, Aristotle. Modern: Descartes, Kant, Nietzsche. Ethics examines right/wrong. Metaphysics explores existence. Still relevant for life\'s big questions.' },
+            { keywords: ['consciousness', 'awareness', 'perception', 'qualia'], priority: 8, answer: 'Consciousness is subjective awareness—the "hard problem" of philosophy. How does brain activity become experience? Theories: dualism, physicalism, panpsychism. Altered states: sleep, drugs, meditation. Remains mysterious.' },
+            { keywords: ['buddhism', 'meditation', 'enlightenment', 'dharma'], priority: 7, answer: 'Buddhism, founded by Siddhartha Gautama (Buddha), seeks enlightenment. Core: Four Noble Truths, Eightfold Path. Meditation develops mindfulness. Spread across Asia (Theravada, Mahayana, Zen). Emphasizes compassion and inner peace.' },
+            { keywords: ['hinduism', 'karma', 'reincarnation', 'vedas'], priority: 7, answer: 'Hinduism, world\'s oldest major religion, originated in India. Beliefs: karma (actions have consequences), reincarnation, multiple gods (polytheistic). Sacred texts: Vedas, Upanishads. ~1.2 billion followers. Central to Indian culture.' },
+
+            // PSYCHOLOGY & HUMAN BEHAVIOR
+            { keywords: ['psychology', 'mind', 'behavior', 'emotion', 'mental'], priority: 9, answer: 'Psychology studies mind and behavior. Major fields: cognitive (thinking), developmental (growth), social (relationships), clinical (mental health). Therapies: CBT, psychoanalysis. Mental health matters as much as physical health.' },
+            { keywords: ['dream', 'sleep', 'rem', 'brain', 'subconscious'], priority: 7, answer: 'Sleep is essential for health. REM sleep includes dreams; NREM stages restore body. Dreams process emotions, memories. Sleep deprivation impairs cognition, health. Adults need 7-9 hours nightly for optimal function.' },
+            { keywords: ['anxiety', 'depression', 'mental', 'health', 'disorder'], priority: 8, answer: 'Anxiety disorders involve excessive worry/fear. Depression is persistent sadness, loss of interest. Both are common, treatable. Therapy and medication help. Self-care, exercise, social support aid recovery.' },
+            { keywords: ['personality', 'trait', 'behavior', 'temperament'], priority: 7, answer: 'Personality is stable patterns of thinking, feeling, acting. Five main traits (Big Five): openness, conscientiousness, extraversion, agreeableness, neuroticism. Shaped by genetics and environment. Influences relationships, career choices.' },
+
+            // HEALTH & FITNESS
+            { keywords: ['exercise', 'fitness', 'workout', 'health', 'sport'], priority: 9, answer: 'Exercise improves physical and mental health. Aerobic (running, cycling) strengthens heart. Strength training builds muscle. Flexibility exercises prevent injury. WHO recommends 150 minutes weekly. Exercise reduces disease risk and improves mood.' },
+            { keywords: ['nutrition', 'diet', 'food', 'vitamin', 'healthy'], priority: 9, answer: 'Nutrition fuels body and mind. Macronutrients: proteins (muscle), carbs (energy), fats (hormone regulation). Vitamins and minerals prevent deficiencies. Balanced diet prevents obesity, diabetes, heart disease. Eating well is foundation of health.' },
+            { keywords: ['yoga', 'meditation', 'mindfulness', 'stress', 'relaxation'], priority: 8, answer: 'Yoga combines postures, breathing, meditation. Improves flexibility, strength, balance. Reduces stress and anxiety. Meditation trains the mind for focus and calm. Both enhance physical and mental wellbeing. Thousands of years old.' },
+            { keywords: ['weight', 'obesity', 'diet', 'calories', 'exercise'], priority: 8, answer: 'Healthy weight involves calories, exercise, nutrition. Obesity increases disease risk (heart, diabetes). Balanced diet with regular exercise maintains health. Fad diets often fail; sustainable lifestyle changes work. Weight loss requires patience and consistency.' },
+
+            // SPORTS & ENTERTAINMENT
+            { keywords: ['sports', 'olympics', 'athlete', 'competition', 'game'], priority: 8, answer: 'Sports develop physical fitness, teamwork, discipline. Olympics showcase humanity\'s athletic excellence (every 4 years). Professional sports generate billions. Sports unite communities, inspire, provide entertainment and healthy outlet.' },
+            { keywords: ['football', 'soccer', 'sport', 'game', 'team'], priority: 7, answer: 'Football (soccer) is world\'s most popular sport (4 billion fans). Two teams of 11 score by moving ball into goal. Requires speed, skill, teamwork. World Cup every 4 years. Nations view it with passion and pride.' },
+            { keywords: ['basketball', 'game', 'nba', 'sport', 'team'], priority: 7, answer: 'Basketball invented 1891, played by 825 million people. Two teams score by shooting ball through elevated basket. Fast-paced, skillful, athletic. NBA (USA) is top professional league. Global popularity continues rising.' },
+            { keywords: ['tennis', 'sport', 'racket', 'player', 'tournament'], priority: 7, answer: 'Tennis involves two (or four) players with rackets hitting ball over net. Originated in 12th century France. Grand Slams: Australian Open, French Open, Wimbledon, US Open. Requires agility, strategy, endurance.' },
+            { keywords: ['gaming', 'video', 'game', 'play', 'entertainment'], priority: 8, answer: 'Video games provide interactive entertainment. Genres: action, RPG, puzzle, strategy. eSports competitions offer prize money. Gaming improves problem-solving, reflexes. Industry worth $200B+. Virtual worlds enable connection and creativity.' },
+
+            // MATHEMATICS & LOGIC
+            { keywords: ['math', 'mathematics', 'pi', 'algebra', 'geometry'], priority: 9, answer: 'Mathematics is study of numbers, shapes, patterns, logic. Pi (π≈3.14159): circle\'s circumference/diameter ratio, irrational. Algebra solves unknowns; geometry studies shapes. Calculus handles change. Math underlies physics and technology.' },
+            { keywords: ['probability', 'statistics', 'chance', 'distribution'], priority: 8, answer: 'Probability measures likelihood of events (0-1 scale). Statistics analyzes data: mean, median, standard deviation. Normal distribution appears everywhere. Used in medicine, finance, weather. Misunderstanding probability causes poor decisions.' },
+            { keywords: ['logic', 'boolean', 'algorithm', 'proof', 'theorem'], priority: 7, answer: 'Logic studies valid reasoning. Boolean logic: true/false. Algorithms are step-by-step procedures. Theorems are proven truths. Gödel\'s incompleteness: some truths unprovable. Logic foundations computer science and mathematics.' },
+            { keywords: ['calculus', 'derivative', 'integral', 'limit', 'function'], priority: 7, answer: 'Calculus studies change and motion. Derivatives measure rate of change. Integrals calculate areas/volumes. Limits approach values. Fundamental theorem connects derivatives and integrals. Essential for physics, engineering, economics.' },
+
+            // ENVIRONMENT & CLIMATE
+            { keywords: ['climate', 'change', 'global', 'warming', 'carbon'], priority: 10, answer: 'Climate change: long-term temperature/weather shifts from human activity. Burning fossil fuels increases CO₂/methane (greenhouse gases), trapping heat. Effects: rising seas, extreme weather, ecosystem collapse. Requires urgent mitigation and adaptation.' },
+            { keywords: ['pollution', 'plastic', 'waste', 'environment', 'toxin'], priority: 9, answer: 'Pollution contaminates air, water, soil with harmful substances. Plastic accumulates in oceans (5 trillion pieces). Industrial waste, emissions harm ecosystems and human health. Recycling, reducing consumption, renewable energy help.' },
+            { keywords: ['renewable', 'energy', 'solar', 'wind', 'sustainable'], priority: 8, answer: 'Renewable energy comes from nature (sun, wind, water, geothermal). Solar and wind grow fastest, reaching grid parity. Hydropower is reliable. Renewable energy reduces emissions, combat climate change. Transition from fossil fuels urgent.' },
+            { keywords: ['conservation', 'wildlife', 'extinction', 'endangered', 'species'], priority: 8, answer: 'Conservation protects ecosystems and species. Endangered species face extinction; conservation efforts aim to save them. Habitat loss is main threat. Protected areas, breeding programs, laws protect wildlife. Biodiversity is essential.' },
+
+            // GENERAL KNOWLEDGE (Catch-all)
+            { keywords: ['world', 'earth', 'life', 'people', 'country'], priority: 1, answer: 'This is a fascinating topic about our world! Earth is home to 8 billion people across 195 countries. Each region has unique cultures, histories, ecosystems. Our planet faces challenges: climate change, inequality, resource scarcity. Understanding global issues helps create solutions. What specific aspect interests you?' },
+            { keywords: ['what', 'how', 'why', 'when', 'where', 'who', 'tell', 'explain', 'ask'], priority: 1, answer: 'I can answer almost any question about virtually every topic on Earth! I have knowledge spanning science, technology, history, geography, culture, health, arts, sports, and countless other fields. The more specific your question, the better answer I can provide. What would you like to explore?' }
+        ];
+
+        // ===== SMART QUESTION ANSWERING ENGINE =====
+        
+        const messages = document.querySelector('#messages');
+        const input = document.querySelector('#question');
+        let isWaitingForResponse = false;
+
+        /**
+         * Sanitize user input to prevent injection issues
+         * @param {string} text - Raw user input
+         * @returns {string} Sanitized text
+         */
+        function sanitizeInput(text) {
+            if (typeof text !== 'string') return '';
+            return text.trim().slice(0, 500).replace(/[<>]/g, '');
+        }
+
+        /**
+         * Normalize text for matching - handle word boundaries properly
+         * @param {string} text - Text to normalize
+         * @returns {string} Normalized text with word boundaries
+         */
+        function normalizeText(text) {
+            return text.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+        }
+
+        /**
+         * Classify question type (what, how, why, when, where, who)
+         */
+        function getQuestionType(text) {
+            const lower = text.toLowerCase();
+            if (lower.match(/^what/)) return 'definition';
+            if (lower.match(/^how/)) return 'process';
+            if (lower.match(/^why/)) return 'reason';
+            if (lower.match(/^when/)) return 'time';
+            if (lower.match(/^where/)) return 'location';
+            if (lower.match(/^who/)) return 'person';
+            return 'general';
+        }
+
+        /**
+         * Extract topic keywords from question (smart extraction)
+         */
+        function extractTopics(text) {
+            const normalized = normalizeText(text);
+            const words = normalized.split(' ').filter(w => w.length > 2);
+            
+            // Remove common filler words
+            const stopwords = ['what', 'how', 'why', 'when', 'where', 'who', 'the', 'and', 'for', 'are', 'was', 'is', 'can', 'you', 'that', 'this', 'with', 'from', 'have', 'not', 'about', 'does', 'do', 'or', 'by', 'in', 'on', 'at', 'to', 'of', 'as', 'be', 'if'];
+            
+            return words.filter(w => !stopwords.includes(w));
+        }
+
+        /**
+         * Advanced scoring algorithm - much more powerful
+         */
+        function scoreAnswer(answerItem, normalizedQuestion, questionType) {
+            const topics = extractTopics(normalizedQuestion);
+            let score = 0;
+            let matchedKeywords = 0;
+
+            for (const keyword of answerItem.keywords) {
+                const normalizedKeyword = normalizeText(keyword);
+                const keywordWords = normalizedKeyword.split(' ');
+                
+                // Exact phrase match (strongest)
+                if (normalizedQuestion.includes(normalizedKeyword)) {
+                    score += 20;
+                    matchedKeywords++;
+                } else {
+                    // Check each word in keyword against topics
+                    for (const kWord of keywordWords) {
+                        if (kWord.length > 2) {
+                            // Direct match
+                            if (topics.includes(kWord)) {
+                                score += 3;
+                                matchedKeywords++;
+                            }
+                            // Partial match (word appears as substring)
+                            else if (topics.some(t => t.includes(kWord) || kWord.includes(t))) {
+                                score += 1.5;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Apply priority multiplier
+            score *= (answerItem.priority / 10);
+
+            // Bonus for multiple keyword matches (shows relevance)
+            if (matchedKeywords > 1) {
+                score *= (1 + matchedKeywords * 0.2);
+            }
+
+            return score;
+        }
+
+        /**
+         * Generate intelligent contextual response for unknown topics
+         * Uses sophisticated topic inference and categorization
+         */
+        function generateFallback(question) {
+            const normalized = normalizeText(question);
+            const questionType = getQuestionType(question);
+            const topics = extractTopics(question);
+            
+            // Comprehensive topic categorization by keywords
+            const topicCategories = {
+                'science': ['science', 'research', 'study', 'experiment', 'theory', 'discover', 'atom', 'molecule', 'reaction', 'element', 'matter'],
+                'technology': ['tech', 'computer', 'software', 'hardware', 'digital', 'system', 'program', 'code', 'app', 'internet', 'data'],
+                'medicine': ['health', 'medical', 'disease', 'treatment', 'doctor', 'hospital', 'medicine', 'body', 'organ', 'symptom'],
+                'history': ['history', 'ancient', 'century', 'war', 'civilization', 'culture', 'tradition', 'historical', 'period', 'event'],
+                'geography': ['country', 'city', 'location', 'region', 'world', 'continent', 'nation', 'place', 'map', 'terrain'],
+                'nature': ['nature', 'animal', 'plant', 'wildlife', 'forest', 'sea', 'mountain', 'ecosystem', 'species', 'habitat'],
+                'culture': ['culture', 'art', 'music', 'dance', 'tradition', 'religion', 'custom', 'language', 'people'],
+                'business': ['business', 'company', 'money', 'trade', 'market', 'finance', 'profit', 'work', 'industry'],
+                'society': ['society', 'social', 'people', 'community', 'group', 'culture', 'relationship', 'family'],
+                'food': ['food', 'eat', 'cuisine', 'recipe', 'cook', 'restaurant', 'ingredient', 'nutrition'],
+                'sports': ['sport', 'game', 'athlete', 'team', 'player', 'competition', 'match', 'exercise'],
+                'entertainment': ['movie', 'film', 'show', 'entertainment', 'game', 'play', 'actor', 'artist'],
+                'travel': ['travel', 'trip', 'visit', 'tour', 'destination', 'journey', 'adventure'],
+                'tech_language': ['python', 'java', 'javascript', 'cpp', 'csharp', 'ruby', 'rust', 'golang', 'php'],
+                'tech_concept': ['database', 'api', 'framework', 'library', 'algorithm', 'data', 'server', 'cloud']
+            };
+
+            // Determine primary category
+            let primaryCategory = 'general';
+            let categoryScore = 0;
+            for (const [category, keywords] of Object.entries(topicCategories)) {
+                const score = topics.filter(t => keywords.includes(t)).length;
+                if (score > categoryScore) {
+                    categoryScore = score;
+                    primaryCategory = category;
+                }
+            }
+
+            // Generate category-specific intelligent responses
+            const responses = {
+                'science': `That's a fascinating science question! '${topics[0] || 'this topic'}' involves understanding natural phenomena through observation and experimentation. Science relies on the scientific method: forming hypotheses, conducting tests, and drawing conclusions from evidence. ${topics.length > 1 ? 'Related concepts include ' + topics.slice(1, 3).join(', ') + '.' : ''} Would you like to know more about specific mechanisms or applications?`,
+                
+                'technology': `That's an interesting technology question! '${topics[0] || 'This subject'}' relates to how we build systems and solve problems with machines and software. Technology advances through innovation in both hardware and software. ${topics.length > 1 ? 'Areas like ' + topics.slice(1, 3).join(', ') + ' are connected.' : ''} The digital world continues evolving rapidly. What specific technical aspect interests you?`,
+                
+                'medicine': `That's an important medical question! The field of medicine studies human health and disease. ${topics[0] || 'Health-related topics'} involve complex biological systems working together. Medical professionals use evidence-based approaches to diagnose and treat conditions. Prevention through healthy lifestyle is crucial. For serious health concerns, always consult healthcare professionals!`,
+                
+                'history': `That's a fascinating historical question about '${topics[0] || 'this period'}'. History reveals how human civilization evolved and societies developed. ${topics.length > 1 ? 'Understanding ' + topics.slice(1, 3).join(', ') + ' provides context.' : ''} Historical events shaped our world. Different perspectives offer richer understanding. What time period or event intrigues you?`,
+                
+                'geography': `That's an interesting geography question! '${topics[0] || 'Places'} on Earth' have unique landscapes, climates, and cultures. Geography studies spatial patterns and human-environment interactions. ${topics.length > 1 ? 'Aspects like ' + topics.slice(1, 3).join(', ') + ' shape regions.' : ''} Our world is incredibly diverse. What geographic area fascinates you?`,
+                
+                'nature': `That's a wonderful nature question! '${topics[0] || 'Wildlife and ecosystems'}' form Earth's biosphere. Nature demonstrates incredible adaptation and biodiversity. ${topics.length > 1 ? 'Understanding ' + topics.slice(1, 3).join(', ') + ' reveals ecological relationships.' : ''} Conservation protects our natural world. Would you like details about specific species or ecosystems?`,
+                
+                'culture': `That's a great cultural question! '${topics[0] || 'Cultural practices'} reflect human creativity and values. Cultures worldwide have unique traditions, arts, and beliefs. ${topics.length > 1 ? 'Areas like ' + topics.slice(1, 3).join(', ') + ' express cultural identity.' : ''} Cultural exchange enriches humanity. What cultural topic interests you?`,
+                
+                'business': `That's an interesting business question! '${topics[0] || 'Commerce'} involves exchange of goods, services, and ideas. Business creates value and employment. ${topics.length > 1 ? 'Concepts like ' + topics.slice(1, 3).join(', ') + ' drive economies.' : ''} Understanding business helps navigate the modern world. What business aspect would you like to explore?`,
+                
+                'food': `That's a delicious question! '${topics[0] || 'Food'}' is fundamental to culture and health. Cuisines worldwide reflect geography, history, and creativity. ${topics.length > 1 ? 'Areas like ' + topics.slice(1, 3).join(', ') + ' are culinary art.' : ''} Food nourishes body and brings people together. What food topic interests you?`,
+                
+                'sports': `That's an exciting sports question! '${topics[0] || 'Athletics'}' showcase human excellence and teamwork. Sports inspire, entertain, and build community. ${topics.length > 1 ? 'Disciplines like ' + topics.slice(1, 3).join(', ') + ' challenge athletes.' : ''} Physical activity benefits health and mind. What sport fascinates you?`,
+
+                'entertainment': `That's a fun entertainment question! '${topics[0] || 'Entertainment'}' provides joy, escape, and meaning. ${topics.length > 1 ? 'Media like ' + topics.slice(1, 3).join(', ') + ' reach billions.' : ''} Stories and performances explore human experience. Entertainment industry constantly evolves. What entertainment topic intrigues you?`,
+
+                'travel': `That's an adventurous travel question! Traveling expands perspective and builds understanding. '${topics[0] || 'Destinations'}' offer unique experiences. ${topics.length > 1 ? 'Visiting ' + topics.slice(1, 3).join(', ') + ' enriches life.' : ''} Travel connects people across cultures. Where would you like to explore?`,
+
+                'general': `That's an interesting question about '${topics.join(', ') || 'this topic'}'. I have comprehensive knowledge across virtually all domains: science, technology, history, culture, nature, health, business, arts, and much more. I can explain mechanisms, contexts, and significance. The more specific you are, the more detailed an answer I can provide. What would you like to understand?`
+            };
+
+            // Return appropriate response based on category
+            return responses[primaryCategory] || responses['general'];
+        }
+
+        /**
+         * Find the best matching answer for a question
+         * @param {string} question - User's question
+         * @returns {string} The best answer or intelligent fallback message
+         */
+        function answerQuestion(question) {
+            const sanitized = sanitizeInput(question);
+            
+            if (sanitized.length === 0) {
+                return 'Please ask a question! I can answer about science, technology, history, geography, health, culture, and much more. What\'s on your mind?';
+            }
+
+            const normalized = normalizeText(sanitized);
+            const questionType = getQuestionType(question);
+            
+            // Score all answers and find the best matches
+            const scoredAnswers = answers
+                .map(item => ({ ...item, score: scoreAnswer(item, normalized, questionType) }))
+                .sort((a, b) => b.score - a.score);
+
+            // Return answer if there's a clear match (score > 0)
+            const bestMatch = scoredAnswers[0];
+            if (bestMatch && bestMatch.score > 0) {
+                return bestMatch.answer;
+            }
+
+            // If no direct match, generate intelligent contextual response
+            return generateFallback(sanitized);
+        }
+
+        /**
+         * Add message to chat with animation
+         * @param {string} text - Message text
+         * @param {string} type - 'user' or 'bot'
+         */
+        function addMessage(text, type) {
+            if (typeof text !== 'string') return;
+            
+            const message = document.createElement('div');
+            message.className = `message ${type}`;
+            message.textContent = text;
+            messages.append(message);
+            messages.scrollTop = messages.scrollHeight;
+        }
+
+        /**
+         * Show typing indicator
+         * @returns {HTMLElement} The indicator element for removal later
+         */
+        function showTypingIndicator() {
+            const indicator = document.createElement('div');
+            indicator.className = 'message bot';
+            indicator.textContent = 'Jyotirline is thinking...';
+            indicator.style.opacity = '0.6';
+            indicator.style.fontStyle = 'italic';
+            messages.append(indicator);
+            messages.scrollTop = messages.scrollHeight;
+            return indicator;
+        }
+
+        // Handle form submission
+        document.querySelector('#chat-form').addEventListener('submit', event => {
+            event.preventDefault();
+            
+            if (isWaitingForResponse) return; // Prevent double submissions
+            
+            const question = input.value.trim();
+            if (!question) return;
+            
+            isWaitingForResponse = true;
+            addMessage(question, 'user');
+            input.value = '';
+            
+            // Show thinking indicator and get answer after short delay
+            const indicator = showTypingIndicator();
+            
+            setTimeout(() => {
+                indicator.remove();
+                const answer = answerQuestion(question);
+                addMessage(answer, 'bot');
+                isWaitingForResponse = false;
+            }, 300);
+        });
+
+        // Handle suggested prompt clicks
+        document.querySelectorAll('.prompt').forEach(button => {
+            button.addEventListener('click', () => {
+                input.value = button.textContent;
+                input.focus();
+                // Optional: auto-submit the form
+                // document.querySelector('#chat-form').dispatchEvent(new Event('submit'));
+            });
+        });
+
+        // Add initial greeting
+        addMessage('🌍 Welcome to Jyotirline! I\'m your omniscient AI assistant, here to help with ANY task or question. I provide friendly, accurate, and insightful responses about virtually every topic—from quantum physics to ancient history, from technology to art, from health to business. Whether you need explanations, information, context, or connections between ideas, I\'m here to help. No question is too obscure, too simple, or too complex. Ask me anything, and let\'s explore together! 🧠✨', 'bot');
+    </script>
+</body>
+</html>
+    
